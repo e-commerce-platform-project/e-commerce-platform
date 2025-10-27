@@ -1,40 +1,284 @@
+
 services:
   keycloak:
     image: quay.io/keycloak/keycloak:26.3.3
     container_name: keycloak
+    restart: unless-stopped
+    command:
+      - start-dev
     environment:
       KEYCLOAK_HOSTNAME: localhost
+      KC_HOSTNAME_PORT: 9090
+      KC_HOSTNAME_STRICT: "false"
+      KC_HTTP_ENABLED: "true"
       KC_BOOTSTRAP_ADMIN_USERNAME: admin
       KC_BOOTSTRAP_ADMIN_PASSWORD: admin
       KC_DB: postgres
-      KC_DB_URL_HOSTNAME: postgres
+      KC_DB_URL: jdbc:postgresql://keycloak-postgres:5432/keycloak
       KC_DB_URL_DATABASE: keycloak
+      KC_DB_SCHEMA: public
       KC_DB_USERNAME: keycloak
       KC_DB_PASSWORD: keycloak
+      KC_DB_INITIALIZE: "true"
     depends_on:
-      - keycloak-postgres
+      keycloak-postgres:
+        condition: service_healthy
     ports:
       - "9090:8080"
+    healthcheck:
+      test: ["CMD-SHELL", "curl", "-f", "http://localhost:8080/health/ready"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    volumes:
+      - keycloak-data:/opt/keycloak/data
     networks:
-      - ecommerce-platform_project-net
+      - ecommerce-platform-project-net
+
+
 
   keycloak-postgres:
     image: postgres:15-alpine
+    hostname: keycloak-postgres
     container_name: keycloak-postgres
+    restart: unless-stopped
     environment:
       POSTGRES_DB: keycloak
       POSTGRES_USER: keycloak
       POSTGRES_PASSWORD: keycloak
     ports:
       - "5432:5432"
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U keycloak -d keycloak" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - keycloak-postgres-data:/var/lib/postgresql/data
     networks:
-      - ecommerce-platform_project-net
+      - ecommerce-platform-project-net
+
+
+
+  kafka-controller-1:
+    image: apache/kafka:latest
+    hostname: kafka-controller-1
+    restart: unless-stopped
+    container_name: kafka-controller-1
+    ports:
+      - "9093:9093"
+    environment:
+      CLUSTER_ID: 5L6g3nShT-eMCtK--X86sw
+      KAFKA_NODE_ID: 1
+      KAFKA_PROCESS_ROLES: controller
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka-controller-1:9093,2@kafka-controller-2:9093,3@kafka-controller-3:9093
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_LISTENERS: CONTROLLER://:9093
+      KAFKA_LOG_DIRS: /opt/kafka/data
+    healthcheck:
+      test: [ "CMD", "bash", "-c", "echo | nc -z localhost 9093" ]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+#    volumes:
+#      - kafka-controller-1-data:/opt/kafka/data
+    networks:
+      - ecommerce-platform-project-net
+
+
+
+  kafka-controller-2:
+    image: apache/kafka:latest
+    hostname: kafka-controller-2
+    restart: unless-stopped
+    container_name: kafka-controller-2
+    ports:
+      - "9193:9093"
+    environment:
+      CLUSTER_ID: 5L6g3nShT-eMCtK--X86sw
+      KAFKA_NODE_ID: 2
+      KAFKA_PROCESS_ROLES: controller
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka-controller-1:9093,2@kafka-controller-2:9093,3@kafka-controller-3:9093
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_LISTENERS: CONTROLLER://:9093
+      KAFKA_LOG_DIRS: /tmp/kafka-logs
+    depends_on:
+      kafka-controller-1:
+        condition: service_healthy
+    healthcheck:
+      test: [ "CMD", "bash", "-c", "echo | nc -z localhost 9093" ]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+#    volumes:
+#      - kafka-controller-2-data:/tmp/kafka-logs
+    networks:
+      - ecommerce-platform-project-net
+
+
+
+  kafka-controller-3:
+    image: apache/kafka:latest
+    hostname: kafka-controller-3
+    restart: unless-stopped
+    container_name: kafka-controller-3
+    ports:
+      - "9293:9093"
+    environment:
+      CLUSTER_ID: 5L6g3nShT-eMCtK--X86sw
+      KAFKA_NODE_ID: 3
+      KAFKA_PROCESS_ROLES: controller
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka-controller-1:9093,2@kafka-controller-2:9093,3@kafka-controller-3:9093
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_LISTENERS: CONTROLLER://:9093
+      KAFKA_LOG_DIRS: /tmp/kafka-logs
+    depends_on:
+      kafka-controller-1:
+        condition: service_healthy
+      kafka-controller-2:
+        condition: service_healthy
+    healthcheck:
+      test: [ "CMD", "bash", "-c", "echo | nc -z localhost 9093" ]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+#    volumes:
+#      - kafka-controller-3-data:/tmp/kafka-logs
+    networks:
+      - ecommerce-platform-project-net
+
+
+
+  kafka-broker-1:
+    image: apache/kafka:latest
+    hostname: kafka-broker-1
+    restart: unless-stopped
+    container_name: kafka-broker-1
+    ports:
+      - "29092:9092"
+    environment:
+      CLUSTER_ID: 5L6g3nShT-eMCtK--X86sw
+      KAFKA_NODE_ID: 4
+      KAFKA_PROCESS_ROLES: broker
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka-controller-1:9093,2@kafka-controller-2:9093,3@kafka-controller-3:9093
+      KAFKA_LISTENERS: PLAINTEXT://:19092,PLAINTEXT_HOST://:9092
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://broker-i1:19092,PLAINTEXT_HOST://localhost:29092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_LOG_DIRS: /tmp/kafka-logs
+    healthcheck:
+      test: [ "CMD", "bash", "-c", "echo | nc -z localhost 9092" ]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 40s
+    depends_on:
+      kafka-controller-1:
+        condition: service_healthy
+      kafka-controller-2:
+        condition: service_healthy
+      kafka-controller-3:
+        condition: service_healthy
+#    volumes:
+#      - kafka-broker-1-data:/tmp/kafka-logs
+    networks:
+      - ecommerce-platform-project-net
+
+
+
+  kafka-broker-2:
+    image: apache/kafka:latest
+    hostname: kafka-broker-2
+    restart: unless-stopped
+    container_name: kafka-broker-2
+    ports:
+      - "39092:9092"
+    environment:
+      CLUSTER_ID: 5L6g3nShT-eMCtK--X86sw
+      KAFKA_NODE_ID: 5
+      KAFKA_PROCESS_ROLES: broker
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka-controller-1:9093,2@kafka-controller-2:9093,3@kafka-controller-3:9093
+      KAFKA_LISTENERS: PLAINTEXT://:19092,PLAINTEXT_HOST://:9092
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka-broker-2:19092,PLAINTEXT_HOST://localhost:39092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_LOG_DIRS: /tmp/kafka-logs
+    healthcheck:
+      test: [ "CMD", "bash", "-c", "echo | nc -z localhost 9092" ]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 40s
+    depends_on:
+      kafka-controller-1:
+        condition: service_healthy
+      kafka-controller-2:
+        condition: service_healthy
+      kafka-controller-3:
+        condition: service_healthy
+#    volumes:
+#      - kafka-broker-2-data:/tmp/kafka-logs
+    networks:
+      - ecommerce-platform-project-net
+
+
+
+  kafka-broker-3:
+    image: apache/kafka:latest
+    hostname: kafka-broker-3
+    restart: unless-stopped
+    container_name: kafka-broker-3
+    ports:
+      - "49092:9092"
+    environment:
+      CLUSTER_ID: 5L6g3nShT-eMCtK--X86sw
+      KAFKA_NODE_ID: 6
+      KAFKA_PROCESS_ROLES: broker
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka-controller-1:9093,2@kafka-controller-2:9093,3@kafka-controller-3:9093
+      KAFKA_LISTENERS: PLAINTEXT://:19092,PLAINTEXT_HOST://:9092
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka-broker-3:19092,PLAINTEXT_HOST://localhost:49092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_LOG_DIRS: /tmp/kafka-logs
+    depends_on:
+      kafka-controller-1:
+        condition: service_healthy
+      kafka-controller-2:
+        condition: service_healthy
+      kafka-controller-3:
+        condition: service_healthy
+    healthcheck:
+      test: [ "CMD", "bash", "-c", "echo | nc -z localhost 9092" ]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 40s
+#    volumes:
+#      - kafka-broker-3-data:/tmp/kafka-logs
+    networks:
+      - ecommerce-platform-project-net
+
+
+
 
 
 volumes:
-  postgres_data:
+  keycloak-data:
+  keycloak-postgres-data:
+  kafka-controller-1-data:
+  kafka-controller-2-data:
+  kafka-controller-3-data:
+  kafka-broker-1-data:
+  kafka-broker-2-data:
+  kafka-broker-3-data:
 
 networks:
-  ecommerce-platform_project-net:
+  ecommerce-platform-project-net:
+    driver: bridge
