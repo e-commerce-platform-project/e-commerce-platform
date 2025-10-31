@@ -269,11 +269,11 @@ services:
 
 
 
-  email-verification-service-redis:
+  email-verification-codes-redis:
     image: redis:alpine
-    hostname: email-verification-service-redis
+    hostname: email-verification-codes-redis
     restart: unless-stopped
-    container_name: email-verification-service-redis
+    container_name: email-verification-codes-redis
     ports:
       - "6379:6379"
     healthcheck:
@@ -282,9 +282,24 @@ services:
       timeout: 5s
       retries: 30
     volumes:
-      - email-verification-service-redis-data:/data
+      - email-verification-codes-redis-data:/data
     networks:
       - ecommerce-platform-project-net
+
+  redis-ui:
+    image: redis/redisinsight:latest
+    container_name: redis-ui
+    restart: unless-stopped
+    ports:
+      - "5540:5540"
+    depends_on:
+      email-verification-codes-redis:
+        condition: service_healthy
+    volumes:
+      - redis-ui-data:/db
+    networks:
+      - ecommerce-platform-project-net
+
 
 
 
@@ -300,7 +315,8 @@ volumes:
 #  kafka-broker-1-data:
 #  kafka-broker-2-data:
 #  kafka-broker-3-data:
-  email-verification-service-redis-data:
+  email-verification-codes-redis-data:
+  redis-ui-data:
 
 networks:
   ecommerce-platform-project-net:
