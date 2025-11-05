@@ -3,9 +3,7 @@ services:
     image: quay.io/keycloak/keycloak:26.3.3
     container_name: keycloak
     restart: unless-stopped
-    command:
-      - start-dev
-      - --metrics-enabled=true
+    command: start-dev
     environment:
       KC_HOSTNAME: localhost
       KC_HTTP_ENABLED: "true"
@@ -23,21 +21,12 @@ services:
     ports:
       - "8080:8080"
       - "9000:9000"
-#    healthcheck:
-#      test: [
-#         "CMD-SHELL",
-#          "exec 3<>/dev/tcp/localhost/9090; \
-#          echo -en 'GET /health/ready' >&3; \
-#          # Give the server a moment to respond, then search for 'UP'
-#          if timeout 3 cat <&3 | grep -m 1 'UP'; then \
-#            exec 3<&-; exec 3>&-; exit 0; \
-#          else \
-#            exec 3<&-; exec 3>&-; exit 1; \
-#          fi"
-#      ]
-#      interval: 10s
-#      timeout: 5s
-#      retries: 30
+    healthcheck:
+      test: ['CMD-SHELL', '[ -f /tmp/HealthCheck.java ] || echo "public class HealthCheck { public static void main(String[] args) throws java.lang.Throwable { System.exit(java.net.HttpURLConnection.HTTP_OK == ((java.net.HttpURLConnection)new java.net.URL(args[0]).openConnection()).getResponseCode() ? 0 : 1); } }" > /tmp/HealthCheck.java && java /tmp/HealthCheck.java http://localhost:9000/health/live']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
     volumes:
       - keycloak-data:/opt/keycloak/data/import
     networks:
@@ -269,20 +258,161 @@ services:
 
 
 
-  email-verification-codes-redis:
-    image: redis:alpine
-    hostname: email-verification-codes-redis
+  redis-node-1:
+    image: redis:8.2-alpine
     restart: unless-stopped
-    container_name: email-verification-codes-redis
+    container_name: redis-node-1
+    command: redis-server /usr/local/etc/redis/redis.conf
     ports:
       - "6379:6379"
+      - "16379:16379"
     healthcheck:
-      test: [ "CMD", "redis-cli", "ping" ]
-      interval: 30s
+      test: [ "CMD", "redis-cli", "-a", "mysecretpassword", "ping" ]
+      interval: 10s
       timeout: 5s
-      retries: 30
+      retries: 3
+      start_period: 30s
     volumes:
-      - email-verification-codes-redis-data:/data
+#      - ./redis-data/node-1:/data
+      - ./redis-config/redis.conf:/usr/local/etc/redis/redis.conf
+    networks:
+      - ecommerce-platform-project-net
+
+
+  redis-node-2:
+    image: redis:8.2-alpine
+    restart: unless-stopped
+    container_name: redis-node-2
+    command: redis-server /usr/local/etc/redis/redis.conf
+    ports:
+      - "6380:6379"
+      - "16380:16379"
+    healthcheck:
+      test: [ "CMD", "redis-cli", "-a", "mysecretpassword", "ping" ]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+    volumes:
+#      - ./redis-data/node-2:/data
+      - ./redis-config/redis.conf:/usr/local/etc/redis/redis.conf
+    networks:
+      - ecommerce-platform-project-net
+
+
+  redis-node-3:
+    image: redis:8.2-alpine
+    restart: unless-stopped
+    container_name: redis-node-3
+    command: redis-server /usr/local/etc/redis/redis.conf
+    ports:
+      - "6381:6379"
+      - "16381:16379"
+    healthcheck:
+      test: [ "CMD", "redis-cli", "-a", "mysecretpassword", "ping" ]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+    volumes:
+#      - ./redis-data/node-3:/data
+      - ./redis-config/redis.conf:/usr/local/etc/redis/redis.conf
+    networks:
+      - ecommerce-platform-project-net
+
+
+  redis-node-4:
+    image: redis:8.2-alpine
+    restart: unless-stopped
+    container_name: redis-node-4
+    command: redis-server /usr/local/etc/redis/redis.conf
+    ports:
+      - "6382:6379"
+      - "16382:16379"
+    healthcheck:
+      test: [ "CMD", "redis-cli", "-a", "mysecretpassword", "ping" ]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+    volumes:
+#      - ./redis-data/node-4:/data
+      - ./redis-config/redis.conf:/usr/local/etc/redis/redis.conf
+    networks:
+      - ecommerce-platform-project-net
+
+  redis-node-5:
+    image: redis:8.2-alpine
+    restart: unless-stopped
+    container_name: redis-node-5
+    command: redis-server /usr/local/etc/redis/redis.conf
+    ports:
+      - "6383:6379"
+      - "16383:16379"
+    healthcheck:
+      test: [ "CMD", "redis-cli", "-a", "mysecretpassword", "ping" ]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+    volumes:
+#      - ./redis-data/node-5:/data
+      - ./redis-config/redis.conf:/usr/local/etc/redis/redis.conf
+    networks:
+      - ecommerce-platform-project-net
+
+
+  redis-node-6:
+    image: redis:8.2-alpine
+    restart: unless-stopped
+    container_name: redis-node-6
+    command: redis-server /usr/local/etc/redis/redis.conf
+    ports:
+      - "6384:6379"
+      - "16384:16379"
+    healthcheck:
+      test: [ "CMD", "redis-cli", "-a", "mysecretpassword", "ping" ]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+    volumes:
+#      - ./redis-data/node-6:/data
+      - ./redis-config/redis.conf:/usr/local/etc/redis/redis.conf
+    networks:
+      - ecommerce-platform-project-net
+
+
+  redis-setup:
+    image: redis:8.2-alpine
+    depends_on:
+      redis-node-1:
+        condition: service_healthy
+      redis-node-2:
+        condition: service_healthy
+      redis-node-3:
+        condition: service_healthy
+      redis-node-4:
+        condition: service_healthy
+      redis-node-5:
+        condition: service_healthy
+      redis-node-6:
+        condition: service_healthy
+    command: >
+      sh -c "
+      sleep 10 &&
+      redis-cli --cluster create
+      redis-node-1:6379
+      redis-node-2:6379
+      redis-node-3:6379
+      redis-node-4:6379
+      redis-node-5:6379
+      redis-node-6:6379
+      --cluster-replicas 1
+      -a mysecretpassword
+      --cluster-yes
+      || echo 'Cluster already exists or failed'
+      "
     networks:
       - ecommerce-platform-project-net
 
@@ -293,8 +423,12 @@ services:
     ports:
       - "5540:5540"
     depends_on:
-      email-verification-codes-redis:
-        condition: service_healthy
+      - redis-node-1
+      - redis-node-2
+      - redis-node-3
+      - redis-node-4
+      - redis-node-5
+      - redis-node-6
     volumes:
       - redis-ui-data:/db
     networks:
@@ -315,7 +449,7 @@ volumes:
 #  kafka-broker-1-data:
 #  kafka-broker-2-data:
 #  kafka-broker-3-data:
-  email-verification-codes-redis-data:
+#  redis-data:
   redis-ui-data:
 
 networks:
