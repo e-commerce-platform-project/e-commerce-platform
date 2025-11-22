@@ -22,7 +22,7 @@ services:
       - "8080:8080"
       - "9000:9000"
     healthcheck:
-      test: ['CMD-SHELL', '[ -f /tmp/HealthCheck.java ] || echo "public class HealthCheck { public static void main(String[] args) throws java.lang.Throwable { System.exit(java.net.HttpURLConnection.HTTP_OK == ((java.net.HttpURLConnection)new java.net.URL(args[0]).openConnection()).getResponseCode() ? 0 : 1); } }" > /tmp/HealthCheck.java && java /tmp/HealthCheck.java http://localhost:9000/health/live']
+      test: [ 'CMD-SHELL', '[ -f /tmp/HealthCheck.java ] || echo "public class HealthCheck { public static void main(String[] args) throws java.lang.Throwable { System.exit(java.net.HttpURLConnection.HTTP_OK == ((java.net.HttpURLConnection)new java.net.URL(args[0]).openConnection()).getResponseCode() ? 0 : 1); } }" > /tmp/HealthCheck.java && java /tmp/HealthCheck.java http://localhost:9000/health/live' ]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -36,7 +36,6 @@ services:
 
   keycloak-postgres:
     image: postgres:17-alpine
-    hostname: keycloak-postgres
     container_name: keycloak-postgres
     restart: unless-stopped
     environment:
@@ -59,7 +58,6 @@ services:
 
   eureka-server:
     image: ghcr.io/e-commerce-platform-project/eureka-server:latest
-    hostname: eureka-server
     container_name: eureka-server
     restart: unless-stopped
     ports:
@@ -79,7 +77,6 @@ services:
 
   kafka-controller-1:
     image: apache/kafka:latest
-    hostname: kafka-controller-1
     restart: unless-stopped
     container_name: kafka-controller-1
     environment:
@@ -107,7 +104,6 @@ services:
 
   kafka-controller-2:
     image: apache/kafka:latest
-    hostname: kafka-controller-2
     restart: unless-stopped
     container_name: kafka-controller-2
     environment:
@@ -135,7 +131,6 @@ services:
 
   kafka-controller-3:
     image: apache/kafka:latest
-    hostname: kafka-controller-3
     restart: unless-stopped
     container_name: kafka-controller-3
     environment:
@@ -163,7 +158,6 @@ services:
 
   kafka-broker-1:
     image: apache/kafka:latest
-    hostname: kafka-broker-1
     restart: unless-stopped
     container_name: kafka-broker-1
     ports:
@@ -202,7 +196,6 @@ services:
 
   kafka-broker-2:
     image: apache/kafka:latest
-    hostname: kafka-broker-2
     restart: unless-stopped
     container_name: kafka-broker-2
     ports:
@@ -241,7 +234,6 @@ services:
 
   kafka-broker-3:
     image: apache/kafka:latest
-    hostname: kafka-broker-3
     restart: unless-stopped
     container_name: kafka-broker-3
     ports:
@@ -278,161 +270,20 @@ services:
 
 
 
-  redis-node-1:
+  redis:
     image: redis:8.2-alpine
+    container_name: redis
     restart: unless-stopped
-    container_name: redis-node-1
-    command: redis-server /usr/local/etc/redis/redis.conf
     ports:
       - "6379:6379"
-      - "16379:16379"
     healthcheck:
-      test: [ "CMD", "redis-cli", "-a", "mysecretpassword", "ping" ]
+      test: [ "CMD", "redis-cli", "ping" ]
       interval: 10s
       timeout: 5s
       retries: 3
       start_period: 30s
     volumes:
-#      - ./redis-data/node-1:/data
-      - ./redis-config/redis.conf:/usr/local/etc/redis/redis.conf
-    networks:
-      - ecommerce-platform-project-net
-
-
-  redis-node-2:
-    image: redis:8.2-alpine
-    restart: unless-stopped
-    container_name: redis-node-2
-    command: redis-server /usr/local/etc/redis/redis.conf
-    ports:
-      - "6380:6379"
-      - "16380:16379"
-    healthcheck:
-      test: [ "CMD", "redis-cli", "-a", "mysecretpassword", "ping" ]
-      interval: 10s
-      timeout: 5s
-      retries: 3
-      start_period: 30s
-    volumes:
-#      - ./redis-data/node-2:/data
-      - ./redis-config/redis.conf:/usr/local/etc/redis/redis.conf
-    networks:
-      - ecommerce-platform-project-net
-
-
-  redis-node-3:
-    image: redis:8.2-alpine
-    restart: unless-stopped
-    container_name: redis-node-3
-    command: redis-server /usr/local/etc/redis/redis.conf
-    ports:
-      - "6381:6379"
-      - "16381:16379"
-    healthcheck:
-      test: [ "CMD", "redis-cli", "-a", "mysecretpassword", "ping" ]
-      interval: 10s
-      timeout: 5s
-      retries: 3
-      start_period: 30s
-    volumes:
-#      - ./redis-data/node-3:/data
-      - ./redis-config/redis.conf:/usr/local/etc/redis/redis.conf
-    networks:
-      - ecommerce-platform-project-net
-
-
-  redis-node-4:
-    image: redis:8.2-alpine
-    restart: unless-stopped
-    container_name: redis-node-4
-    command: redis-server /usr/local/etc/redis/redis.conf
-    ports:
-      - "6382:6379"
-      - "16382:16379"
-    healthcheck:
-      test: [ "CMD", "redis-cli", "-a", "mysecretpassword", "ping" ]
-      interval: 10s
-      timeout: 5s
-      retries: 3
-      start_period: 30s
-    volumes:
-#      - ./redis-data/node-4:/data
-      - ./redis-config/redis.conf:/usr/local/etc/redis/redis.conf
-    networks:
-      - ecommerce-platform-project-net
-
-  redis-node-5:
-    image: redis:8.2-alpine
-    restart: unless-stopped
-    container_name: redis-node-5
-    command: redis-server /usr/local/etc/redis/redis.conf
-    ports:
-      - "6383:6379"
-      - "16383:16379"
-    healthcheck:
-      test: [ "CMD", "redis-cli", "-a", "mysecretpassword", "ping" ]
-      interval: 10s
-      timeout: 5s
-      retries: 3
-      start_period: 30s
-    volumes:
-#      - ./redis-data/node-5:/data
-      - ./redis-config/redis.conf:/usr/local/etc/redis/redis.conf
-    networks:
-      - ecommerce-platform-project-net
-
-
-  redis-node-6:
-    image: redis:8.2-alpine
-    restart: unless-stopped
-    container_name: redis-node-6
-    command: redis-server /usr/local/etc/redis/redis.conf
-    ports:
-      - "6384:6379"
-      - "16384:16379"
-    healthcheck:
-      test: [ "CMD", "redis-cli", "-a", "mysecretpassword", "ping" ]
-      interval: 10s
-      timeout: 5s
-      retries: 3
-      start_period: 30s
-    volumes:
-#      - ./redis-data/node-6:/data
-      - ./redis-config/redis.conf:/usr/local/etc/redis/redis.conf
-    networks:
-      - ecommerce-platform-project-net
-
-
-  redis-setup:
-    image: redis:8.2-alpine
-    depends_on:
-      redis-node-1:
-        condition: service_healthy
-      redis-node-2:
-        condition: service_healthy
-      redis-node-3:
-        condition: service_healthy
-      redis-node-4:
-        condition: service_healthy
-      redis-node-5:
-        condition: service_healthy
-      redis-node-6:
-        condition: service_healthy
-    command: >
-      sh -c "
-      sleep 10 &&
-      redis-cli --cluster create
-      redis-node-1:6379
-      redis-node-2:6379
-      redis-node-3:6379
-      redis-node-4:6379
-      redis-node-5:6379
-      redis-node-6:6379
-      --cluster-replicas 1
-      -a mysecretpassword
-      --cluster-yes
-      || echo 'Cluster already exists or failed'
-      "
+      - redis-data:/data
     networks:
       - ecommerce-platform-project-net
 
@@ -443,14 +294,120 @@ services:
     ports:
       - "5540:5540"
     depends_on:
-      - redis-node-1
-      - redis-node-2
-      - redis-node-3
-      - redis-node-4
-      - redis-node-5
-      - redis-node-6
+      redis:
+        condition: service_healthy
     volumes:
       - redis-ui-data:/db
+    networks:
+      - ecommerce-platform-project-net
+
+
+
+  api-gateway:
+    container_name: api-gateway
+    image: api-gateway:latest
+    restart: unless-stopped
+    ports:
+      - "8765:8765"
+    environment:
+      EUREKA_URL: http://eureka-server:8761/eureka/
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:8765/actuator/health" ]
+      interval: 10s
+      retries: 5
+      start_period: 30s
+      timeout: 10s
+    networks:
+      - ecommerce-platform-project-net
+
+
+
+  product-service:
+    container_name: product-service
+    image: product-service:latest
+    restart: unless-stopped
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:8080/actuator/health" ]
+      interval: 15s
+      timeout: 10s
+      retries: 15
+      start_period: 60s
+    depends_on:
+      product-service-db:
+        condition: service_healthy
+    environment:
+      SPRING_PROFILES_ACTIVE: cloud
+      EUREKA_URL: http://eureka-server:8761/eureka/
+      KAFKA_BOOTSTRAP_SERVERS: http://kafka-broker-1:29092
+      SPRING_DATASOURCE_DRIVER: org.postgresql.Driver
+      SPRING_DATASOURCE_URL: jdbc:postgresql://product-service-db:5432/product-service-db
+      SPRING_DATASOURCE_USERNAME: username
+      SPRING_DATASOURCE_PASSWORD: password
+    networks:
+      - ecommerce-platform-project-net
+
+
+
+  product-service-db:
+    image: postgres:17-alpine
+    container_name: Product-Service-DB
+    environment:
+      POSTGRES_DB: product-service-db
+      POSTGRES_USER: username
+      POSTGRES_PASSWORD: password
+    ports:
+      - "5435:5432"
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U username -d product-service-db" ]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    volumes:
+      - product-service-db-data:/var/lib/postgresql/data
+    networks:
+      - ecommerce-platform-project-net
+
+
+  shipping-cart-service:
+    container_name: shipping-cart-service
+    image: shipping-cart-service:latest
+    restart: unless-stopped
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:8080/actuator/health" ]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    depends_on:
+      cart-service-db:
+        condition: service_healthy
+    environment:
+      SPRING_PROFILES_ACTIVE: dev
+      SPRING_DATASOURCE_DRIVER: org.postgresql.Driver
+      SPRING_DATASOURCE_URL: jdbc:postgresql://cart-service-db:5432/shipping-cart-service-db
+      SPRING_DATASOURCE_USERNAME: username
+      SPRING_DATASOURCE_PASSWORD: password
+    networks:
+      - ecommerce-platform-project-net
+
+
+
+  shipping-cart-service-db:
+    image: postgres:17-alpine
+    container_name: shipping-cart-service-db
+    environment:
+      POSTGRES_DB: shipping-cart-service-db
+      POSTGRES_USER: username
+      POSTGRES_PASSWORD: password
+    ports:
+      - "5436:5432"
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U username -d cart-service-db" ]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    volumes:
+      - shipping-cart-service-db:/var/lib/postgresql/data
     networks:
       - ecommerce-platform-project-net
 
@@ -463,14 +420,16 @@ services:
 volumes:
   keycloak-data:
   keycloak-postgres-data:
-#  kafka-controller-1-data:
-#  kafka-controller-2-data:
-#  kafka-controller-3-data:
-#  kafka-broker-1-data:
-#  kafka-broker-2-data:
-#  kafka-broker-3-data:
-#  redis-data:
+  #  kafka-controller-1-data:
+  #  kafka-controller-2-data:
+  #  kafka-controller-3-data:
+  #  kafka-broker-1-data:
+  #  kafka-broker-2-data:
+  #  kafka-broker-3-data:
+  redis-data:
   redis-ui-data:
+  product-service-db-data:
+  shipping-cart-service-db:
 
 networks:
   ecommerce-platform-project-net:
